@@ -2,8 +2,12 @@ package main
 
 import (
         _ "fmt"
+        "context"
+        "log"
         "firebase.google.com/go"
         "google.golang.org/api/option"
+        "net/http"
+        "./routes"
        )
 
 func main() {
@@ -18,7 +22,8 @@ func main() {
 	if err != nil {
     log.Fatal(err)
   }
-
   defer client.Close()
+
+  http.ListenAndServe(":8000", routes.Create())
 
 }
