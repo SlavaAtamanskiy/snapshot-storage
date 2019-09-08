@@ -1,28 +1,28 @@
 package main
 
 import (
-        "context"
-        "log"
-        "firebase.google.com/go"
-        "google.golang.org/api/option"
-        "net/http"
-        "./routes"
-       )
+	"./routes"
+	"context"
+	"firebase.google.com/go"
+	"google.golang.org/api/option"
+	"log"
+	"net/http"
+)
 
 func main() {
 
-  op := option.WithCredentialsFile("./keys/accountKey.json")
-  app, err := firebase.NewApp(context.Background(), nil, op)
-  if err != nil {
-    log.Fatal(err)
-  }
-
-  client, err := app.Firestore(context.Background())
+	op := option.WithCredentialsFile("./keys/accountKey.json")
+	app, err := firebase.NewApp(context.Background(), nil, op)
 	if err != nil {
-    log.Fatal(err)
-  }
-  defer client.Close()
+		log.Fatal(err)
+	}
 
-  http.ListenAndServe(":8000", routes.Create(client))
+	client, err := app.Firestore(context.Background())
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer client.Close()
+
+	http.ListenAndServe(":8000", routes.Create(client))
 
 }
