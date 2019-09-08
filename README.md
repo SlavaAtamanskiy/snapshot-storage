@@ -1,5 +1,6 @@
-### snapshot-storage
+# snapshot-storage
 
-# install dependencies:
+### install dependencies:
 $ go get firebase.google.com/go
+
 $ go get github.com/gorilla/mux

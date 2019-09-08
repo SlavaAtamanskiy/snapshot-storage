@@ -1,28 +1,14 @@
 package routes
 
 import (
-  "fmt"
-  "log"
   "net/http"
-	"github.com/gorilla/mux"
+  "context"
   "encoding/json"
   "io/ioutil"
   "time"
   "../types"
+  "../utils"
 )
-
-func Create() *mux.Router {
-     router := mux.NewRouter()
-     router.HandleFunc("/", index)
-	   router.HandleFunc("/snapshots", snapshotsCreateOne).Methods("POST")
-	   router.HandleFunc("/snapshots", snapshotsGetAll).Methods("GET")
-	   router.HandleFunc("/snapshots/{id}", snapshotsGetOne).Methods("GET")
-     return router
-}
-
-func index(response http.ResponseWriter, request *http.Request) {
-     fmt.Fprintf(response, "Home page")
-}
 
 func snapshotsCreateOne(response http.ResponseWriter, request *http.Request) {
 
@@ -31,23 +17,30 @@ func snapshotsCreateOne(response http.ResponseWriter, request *http.Request) {
 			return
 	}
 
-  snap := types.Snapshot {}
+  snap := new(types.Snapshot)
+  curTime := time.Now()
 
   body, err := ioutil.ReadAll(request.Body)
 	if err != nil {
-		  log.Fatal(err)
+      http.Error(response, err.Error(), http.StatusInternalServerError)
+      return
 	}
 
   err = json.Unmarshal(body, &snap)
   if err != nil {
-     log.Fatal(err)
+     http.Error(response, err.Error(), http.StatusInternalServerError)
+     return
   }
 
-  snap.CreationDate = time.Now().Local()
+  snap.CreationDate = curTime.Local()
+  doc := utils.Join(curTime.String(), "_", snap.Device, "_", snap.Event)
+
+  client.Collection("Snapshots").Doc(doc).Set(context.Background(), snap)
 
   jsonData, err := json.Marshal(snap)
   if err != nil {
-    log.Fatal(err)
+     http.Error(response, err.Error(), http.StatusInternalServerError)
+     return
   }
 
   response.Header().Set("Content-Type","application/json")
@@ -56,5 +49,10 @@ func snapshotsCreateOne(response http.ResponseWriter, request *http.Request) {
 
 }
 
-func snapshotsGetAll(response http.ResponseWriter, request *http.Request) { }
+func snapshotsGetAll(response http.ResponseWriter, request *http.Request) {
+
+    //docs := client.Collection("Snapshots").Limit(25).Documents(context.Background()).GetAll
+
+}
+
 func snapshotsGetOne(response http.ResponseWriter, request *http.Request) { }

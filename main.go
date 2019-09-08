@@ -1,7 +1,6 @@
 package main
 
 import (
-        _ "fmt"
         "context"
         "log"
         "firebase.google.com/go"
@@ -24,6 +23,6 @@ func main() {
   }
   defer client.Close()
 
-  http.ListenAndServe(":8000", routes.Create())
+  http.ListenAndServe(":8000", routes.Create(client))
 
 }
