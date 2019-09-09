@@ -2,12 +2,12 @@ package routes
 
 import (
 	"../types"
-	"../utils"
 	"context"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	"time"
+	"strings"
 )
 
 func snapshotsCreateOne(response http.ResponseWriter, request *http.Request) {
@@ -33,7 +33,8 @@ func snapshotsCreateOne(response http.ResponseWriter, request *http.Request) {
 	}
 
 	snap.CreationDate = curTime.Local()
-	doc := utils.Join(curTime.String(), "_", snap.Device, "_", snap.Event)
+
+	doc := strings.Join([]string{curTime.String(), snap.Device, snap.Event}, " ")
 
 	client.Collection("Snapshots").Doc(doc).Set(context.Background(), snap)
 
