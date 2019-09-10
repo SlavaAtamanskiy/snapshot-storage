@@ -9,3 +9,8 @@ type Snapshot struct {
 	Snapshot     string `json: snapshot`
 	CreationDate time.Time
 }
+
+type All struct {
+   Count    int           `json: count`
+   Items    []interface{} `json: items`
+}
