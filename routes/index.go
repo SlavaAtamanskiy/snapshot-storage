@@ -2,17 +2,17 @@ package routes
 
 import (
 	"cloud.google.com/go/firestore"
-	"github.com/gorilla/mux"
 	"context"
+	"github.com/gorilla/mux"
 )
 
 var client *firestore.Client
-var cnt     context.Context
+var cnt context.Context
 
 func Create(c *firestore.Client) *mux.Router {
 
 	client = c
-  cnt    = context.Background()
+	cnt = context.Background()
 
 	router := mux.NewRouter()
 	router.HandleFunc("/snapshots", snapshotsCreateOne).Methods("POST")

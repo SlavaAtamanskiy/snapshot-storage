@@ -3,11 +3,11 @@ package routes
 import (
 	"../types"
 	"encoding/json"
+	"google.golang.org/api/iterator"
 	"io/ioutil"
 	"net/http"
-	"google.golang.org/api/iterator"
-	"time"
 	"strings"
+	"time"
 )
 
 func snapshotsCreateOne(response http.ResponseWriter, request *http.Request) {
@@ -17,7 +17,7 @@ func snapshotsCreateOne(response http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	snap    := new(types.Snapshot)
+	snap := new(types.Snapshot)
 	curTime := time.Now()
 	snap.CreationDate = curTime.Local()
 
@@ -51,24 +51,24 @@ func snapshotsCreateOne(response http.ResponseWriter, request *http.Request) {
 func snapshotsGetAll(response http.ResponseWriter, request *http.Request) {
 
 	//getting struct model for data structuring and docs from the firebase
-  model   := new(types.All)
-	docs    := client.Collection("Snapshots").Documents(cnt)
+	model := new(types.All)
+	docs := client.Collection("Snapshots").Documents(cnt)
 	counter := 0
 
 	//filling an array of items in the model with docs from db
 	for {
-        doc, err := docs.Next()
-        if err == iterator.Done {
-                break
-        }
-        if err != nil {
-                http.Error(response, err.Error(), http.StatusInternalServerError)
-								return
-        }
-				model.Items = append(model.Items,	doc.Data())
-				counter++
-  }
-  model.Count = counter
+		doc, err := docs.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			http.Error(response, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		model.Items = append(model.Items, doc.Data())
+		counter++
+	}
+	model.Count = counter
 
 	//converting model with data to JSON
 	jsonString, err := json.Marshal(model)
@@ -85,5 +85,5 @@ func snapshotsGetAll(response http.ResponseWriter, request *http.Request) {
 }
 
 func snapshotsGetOne(response http.ResponseWriter, request *http.Request) {
-	
+
 }

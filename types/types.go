@@ -11,6 +11,6 @@ type Snapshot struct {
 }
 
 type All struct {
-   Count    int           `json: count`
-   Items    []interface{} `json: items`
+	Count int           `json: count`
+	Items []interface{} `json: items`
 }
