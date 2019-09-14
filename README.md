@@ -5,3 +5,5 @@
 $ go get firebase.google.com/go
 
 $ go get github.com/gorilla/mux
+
+$ go get "github.com/lithammer/shortuuid"

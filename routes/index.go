@@ -15,9 +15,11 @@ func Create(c *firestore.Client) *mux.Router {
 	cnt = context.Background()
 
 	router := mux.NewRouter()
-	router.HandleFunc("/snapshots", snapshotsCreateOne).Methods("POST")
+
 	router.HandleFunc("/snapshots", snapshotsGetAll).Methods("GET")
 	router.HandleFunc("/snapshots/{id}", snapshotsGetOne).Methods("GET")
+	router.HandleFunc("/snapshots", snapshotsCreateOne).Methods("POST")
+	router.HandleFunc("/snapshots", snapshotsDeleteOne).Methods("DELETE")
 
 	return router
 

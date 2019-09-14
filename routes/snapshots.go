@@ -2,46 +2,53 @@ package routes
 
 import (
 	"../types"
+	"../utils"
 	"encoding/json"
 	"google.golang.org/api/iterator"
 	"io/ioutil"
 	"net/http"
-	"strings"
-	"time"
 )
+
+const CollectionName = "Snapshots"
 
 func snapshotsCreateOne(response http.ResponseWriter, request *http.Request) {
 
+	//check if there is body passed
 	if request.Body == nil {
-		http.Error(response, "Please send a request body", 400)
+		http.Error(response, "No body passed for request", 400)
 		return
 	}
 
+	//generating template
 	snap := new(types.Snapshot)
-	curTime := time.Now()
-	snap.CreationDate = curTime.Local()
+	snap.DocumentID = utils.GenerateDocLink(CollectionName)
+	snap.CreationDate = utils.GetLocalTime()
 
+	//reading body from the request
 	body, err := ioutil.ReadAll(request.Body)
 	if err != nil {
 		http.Error(response, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	//merging template data with data passed
 	err = json.Unmarshal(body, &snap)
 	if err != nil {
 		http.Error(response, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	doc := strings.Join([]string{curTime.String(), snap.Device, snap.Event}, " ")
-	client.Collection("Snapshots").Doc(doc).Set(cnt, snap)
+	//inserting document into db
+	client.Collection(CollectionName).Doc(snap.DocumentID).Set(cnt, snap)
 
+	//preparing response body json
 	jsonData, err := json.Marshal(snap)
 	if err != nil {
 		http.Error(response, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	//sending response
 	response.Header().Set("Content-Type", "application/json")
 	response.WriteHeader(http.StatusOK)
 	response.Write(jsonData)
@@ -52,7 +59,8 @@ func snapshotsGetAll(response http.ResponseWriter, request *http.Request) {
 
 	//getting struct model for data structuring and docs from the firebase
 	model := new(types.All)
-	docs := client.Collection("Snapshots").Documents(cnt)
+	docs := client.Collection(CollectionName).Documents(cnt)
+	defer docs.Stop()
 	counter := 0
 
 	//filling an array of items in the model with docs from db
@@ -85,5 +93,21 @@ func snapshotsGetAll(response http.ResponseWriter, request *http.Request) {
 }
 
 func snapshotsGetOne(response http.ResponseWriter, request *http.Request) {
+	//getting parameters (in our case unique id)
+	//query := request.URL.Query()
+	//docId := query.Get("document_id")
+
+}
+
+func snapshotsDeleteOne(response http.ResponseWriter, request *http.Request) {
+
+	//getting parameters (in our case unique id)
+	query := request.URL.Query()
+	docId := query.Get("document_id")
+
+	_, err := client.Collection(CollectionName).Doc(docId).Delete(cnt)
+	if err != nil {
+		http.Error(response, err.Error(), http.StatusInternalServerError)
+	}
 
 }
