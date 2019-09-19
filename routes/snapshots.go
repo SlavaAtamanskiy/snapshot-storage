@@ -23,27 +23,22 @@ func snapshotsDeleteOne(response http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	_, err := client.Collection(CollectionName).Doc(docID).Delete(cnt)
+	//getting reference
+	docRef := client.Collection(CollectionName).Doc(docID)
+	//checking if exists
+	_, err := docRef.Get(ctx)
 	if err != nil {
-		http.Error(response, err.Error(), http.StatusInternalServerError)
+		utils.HandleError(response, err)
 		return
 	}
-
-	var snap struct {
-		Success bool
-	}
-	snap.Success = true
-
-	jsonData, err := json.Marshal(snap)
-	if err != nil {
-		http.Error(response, err.Error(), http.StatusInternalServerError)
+	//deleting
+	if _, err = docRef.Delete(ctx); err != nil {
+		utils.HandleError(response, err)
 		return
 	}
 
 	//sending response
-	response.Header().Set("Content-Type", "application/json")
-	response.WriteHeader(http.StatusOK)
-	response.Write(jsonData)
+	utils.ResponseOk(response, nil)
 
 }
 
@@ -51,7 +46,7 @@ func snapshotsCreateOne(response http.ResponseWriter, request *http.Request) {
 
 	//check if there is body passed
 	if request.Body == nil {
-		http.Error(response, "No body passed for request", 400)
+		utils.CustomError(response, "Bad request", 400)
 		return
 	}
 
@@ -61,40 +56,41 @@ func snapshotsCreateOne(response http.ResponseWriter, request *http.Request) {
 	//reading body from the request
 	body, err := ioutil.ReadAll(request.Body)
 	if err != nil {
-		http.Error(response, err.Error(), http.StatusInternalServerError)
+		utils.HandleError(response, err)
 		return
 	}
 
 	//merging template data with data passed
 	err = json.Unmarshal(body, &snap)
 	if err != nil {
-		http.Error(response, err.Error(), http.StatusInternalServerError)
+		utils.HandleError(response, err)
 		return
 	}
 
 	//inserting document into db
 	snap.DocumentID = utils.GenerateDocLink(CollectionName)
 	snap.CreationDate = utils.GetLocalTime()
-	client.Collection(CollectionName).Doc(snap.DocumentID).Set(cnt, snap)
+	client.Collection(CollectionName).Doc(snap.DocumentID).Set(ctx, utils.DecapitalizeStruct(*snap))
 
-	//preparing response body json
+	//preparing response body json template
 	var r = new(struct {
-		Success bool
+		Success bool `json:"success"`
 		types.DocumentCreate
 	})
+
+	//copy data into response body template
 	copier.Copy(r, snap)
 	r.Success = true
 
+	//convert response body into json
 	jsonData, err := json.Marshal(r)
 	if err != nil {
-		http.Error(response, err.Error(), http.StatusInternalServerError)
+		utils.HandleError(response, err)
 		return
 	}
 
 	//sending response
-	response.Header().Set("Content-Type", "application/json")
-	response.WriteHeader(http.StatusOK)
-	response.Write(jsonData)
+	utils.ResponseOk(response, jsonData)
 
 }
 
@@ -104,9 +100,9 @@ func snapshotsUpdateOne(response http.ResponseWriter, request *http.Request) {
 	query := request.URL.Query()
 	docID := query.Get("document_id")
 
-	//check if there is body passed
-	if request.Body == nil {
-		http.Error(response, "No body passed for request", 400)
+	//check if there are body and parameters passed
+	if request.Body == nil || len(docID) == 0 {
+		utils.CustomError(response, "Bad request", 400)
 		return
 	}
 
@@ -116,57 +112,56 @@ func snapshotsUpdateOne(response http.ResponseWriter, request *http.Request) {
 	//reading body from the request
 	body, err := ioutil.ReadAll(request.Body)
 	if err != nil {
-		http.Error(response, err.Error(), http.StatusInternalServerError)
+		utils.HandleError(response, err)
 		return
 	}
 
 	//merging template data with data passed
 	err = json.Unmarshal(body, &snap)
 	if err != nil {
-		http.Error(response, err.Error(), http.StatusInternalServerError)
+		utils.HandleError(response, err)
 		return
 	}
 
 	//getting reference
 	docRef := client.Collection(CollectionName).Doc(docID)
 	//checking if exists
-	_, err = docRef.Get(cnt)
+	_, err = docRef.Get(ctx)
 	if err != nil {
-		http.Error(response, err.Error(), http.StatusInternalServerError)
+		utils.HandleError(response, err)
 		return
 	}
 	//updating
-	_, err = docRef.Update(cnt, []firestore.Update{
-		{Path: "Device", Value: snap.Device},
-		{Path: "Event", Value: snap.Event},
-		{Path: "Mimetype", Value: snap.Mimetype},
-		{Path: "Snapshot", Value: snap.Snapshot},
+	_, err = docRef.Update(ctx, []firestore.Update{
+		{Path: "device", Value: snap.Device},
+		{Path: "event", Value: snap.Event},
+		{Path: "mimetype", Value: snap.Mimetype},
+		{Path: "snapshot", Value: snap.Snapshot},
 	})
 	if err != nil {
-		http.Error(response, err.Error(), http.StatusInternalServerError)
+		utils.HandleError(response, err)
 		return
 	}
 
 	//preparing response body json
 	var r = new(struct {
-		Success    bool
-		DocumentID string
+		Success    bool   `json:"success"`
+		DocumentID string `json:"document_id"`
 		types.DocumentUpdate
 	})
 	copier.Copy(r, snap)
 	r.Success = true
 	r.DocumentID = docID
+	//r.CreationDate = doc.Data().creation_date
 
 	jsonData, err := json.Marshal(r)
 	if err != nil {
-		http.Error(response, err.Error(), http.StatusInternalServerError)
+		utils.HandleError(response, err)
 		return
 	}
 
 	//sending response
-	response.Header().Set("Content-Type", "application/json")
-	response.WriteHeader(http.StatusOK)
-	response.Write(jsonData)
+	utils.ResponseOk(response, jsonData)
 
 }
 
@@ -187,11 +182,11 @@ func snapshotsGetAll(response http.ResponseWriter, request *http.Request) {
 
 	//getting struct model for data structuring and docs from the firebase
 	model := new(struct {
-		Success bool
+		Success bool `json:"success"`
 		types.All
 	})
 
-	docs := client.Collection(CollectionName).Documents(cnt)
+	docs := client.Collection(CollectionName).Documents(ctx)
 	defer docs.Stop()
 	counter := 0
 
@@ -202,7 +197,7 @@ func snapshotsGetAll(response http.ResponseWriter, request *http.Request) {
 			break
 		}
 		if err != nil {
-			http.Error(response, err.Error(), http.StatusInternalServerError)
+			utils.HandleError(response, err)
 			return
 		}
 		model.Items = append(model.Items, doc.Data())
@@ -212,22 +207,20 @@ func snapshotsGetAll(response http.ResponseWriter, request *http.Request) {
 	model.Success = true
 
 	//converting model with data to JSON
-	jsonString, err := json.Marshal(model)
+	jsonData, err := json.Marshal(model)
 	if err != nil {
-		http.Error(response, err.Error(), http.StatusInternalServerError)
+		utils.HandleError(response, err)
 		return
 	}
 
-	//sending a response
-	response.Header().Set("Content-Type", "application/json")
-	response.WriteHeader(http.StatusOK)
-	response.Write(jsonString)
+	//sending response
+	utils.ResponseOk(response, jsonData)
 
 }
 
 func snapshotsGetOne(response http.ResponseWriter, request *http.Request, documentID string) {
 
-	docs := client.Collection(CollectionName).Where("DocumentID", "==", documentID).Documents(cnt)
+	docs := client.Collection(CollectionName).Where("DocumentID", "==", documentID).Documents(ctx)
 	defer docs.Stop()
 
 	doc, err := docs.Next()
@@ -248,8 +241,6 @@ func snapshotsGetOne(response http.ResponseWriter, request *http.Request, docume
 	}
 
 	//sending response
-	response.Header().Set("Content-Type", "application/json")
-	response.WriteHeader(http.StatusOK)
-	response.Write(jsonData)
+	utils.ResponseOk(response, jsonData)
 
 }

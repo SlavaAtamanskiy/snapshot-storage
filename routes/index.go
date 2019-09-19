@@ -7,12 +7,12 @@ import (
 )
 
 var client *firestore.Client
-var cnt context.Context
+var ctx context.Context
 
 func Create(c *firestore.Client) *mux.Router {
 
 	client = c
-	cnt = context.Background()
+	ctx = context.Background()
 
 	router := mux.NewRouter()
 
