@@ -25,6 +25,24 @@ func GetLocalTime() time.Time {
 
 }
 
+func GetLimitOffset(limit, offset string) (limitInt, offsetInt int) {
+
+	if len(limit) == 0 {
+		limitInt = 0
+	} else {
+		limitInt, _ = strconv.Atoi(limit)
+	}
+
+	if len(offset) == 0 {
+		offsetInt = 0
+	} else {
+		offsetInt, _ = strconv.Atoi(offset)
+	}
+
+	return limitInt, offsetInt
+
+}
+
 func HandleError(r http.ResponseWriter, e error) {
 
 	var sts int

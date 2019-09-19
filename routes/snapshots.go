@@ -19,20 +19,21 @@ func snapshotsDeleteOne(response http.ResponseWriter, request *http.Request) {
 	query := request.URL.Query()
 	docID := query.Get("document_id")
 	if len(docID) == 0 {
-		http.Error(response, "Bad request", 400)
+		utils.CustomError(response, "Bad request", 400)
 		return
 	}
 
 	//getting reference
 	docRef := client.Collection(CollectionName).Doc(docID)
+
 	//checking if exists
-	_, err := docRef.Get(ctx)
-	if err != nil {
+	if _, err := docRef.Get(ctx); err != nil {
 		utils.HandleError(response, err)
 		return
 	}
+
 	//deleting
-	if _, err = docRef.Delete(ctx); err != nil {
+	if _, err := docRef.Delete(ctx); err != nil {
 		utils.HandleError(response, err)
 		return
 	}
@@ -61,8 +62,7 @@ func snapshotsCreateOne(response http.ResponseWriter, request *http.Request) {
 	}
 
 	//merging template data with data passed
-	err = json.Unmarshal(body, &snap)
-	if err != nil {
+	if err = json.Unmarshal(body, &snap); err != nil {
 		utils.HandleError(response, err)
 		return
 	}
@@ -165,20 +165,32 @@ func snapshotsUpdateOne(response http.ResponseWriter, request *http.Request) {
 
 }
 
+/*
+  function: snapshotsGet
+  params:   document_id unique name of one specific document
+	          limit       number of documents to limit
+	          offset      number of documents to leave behind
+	purpose: gets all the entries from Snapshots collection
+	         or some of them using limit and offset params
+					 or one specific entry by its document_id
+*/
 func snapshotsGet(response http.ResponseWriter, request *http.Request) {
 
 	//getting parameters (in our case unique id)
 	query := request.URL.Query()
 	docID := query.Get("document_id")
+	limit := query.Get("limit")
+	offset := query.Get("offset")
 	if len(docID) == 0 {
-		snapshotsGetAll(response, request)
+		lim, offs := utils.GetLimitOffset(limit, offset)
+		snapshotsGetAll(response, request, lim, offs)
 	} else {
 		snapshotsGetOne(response, request, docID)
 	}
 
 }
 
-func snapshotsGetAll(response http.ResponseWriter, request *http.Request) {
+func snapshotsGetAll(response http.ResponseWriter, request *http.Request, limit, offset int) {
 
 	//getting struct model for data structuring and docs from the firebase
 	model := new(struct {
@@ -186,7 +198,18 @@ func snapshotsGetAll(response http.ResponseWriter, request *http.Request) {
 		types.All
 	})
 
-	docs := client.Collection(CollectionName).Documents(ctx)
+	var docs *firestore.DocumentIterator
+	query := client.Collection(CollectionName).OrderBy("creation_date", firestore.Desc)
+
+	if limit == 0 && offset == 0 {
+		docs = query.Documents(ctx)
+	} else if limit == 0 && offset != 0 {
+		docs = query.Offset(offset).Documents(ctx)
+	} else if limit != 0 && offset == 0 {
+		docs = query.Limit(limit).Documents(ctx)
+	} else {
+		docs = query.Offset(offset).Limit(limit).Documents(ctx)
+	}
 	defer docs.Stop()
 	counter := 0
 
@@ -218,25 +241,22 @@ func snapshotsGetAll(response http.ResponseWriter, request *http.Request) {
 
 }
 
-func snapshotsGetOne(response http.ResponseWriter, request *http.Request, documentID string) {
+func snapshotsGetOne(response http.ResponseWriter, request *http.Request, docID string) {
 
-	docs := client.Collection(CollectionName).Where("DocumentID", "==", documentID).Documents(ctx)
-	defer docs.Stop()
+	//getting reference
+	docRef := client.Collection(CollectionName).Doc(docID)
 
-	doc, err := docs.Next()
-	if err == iterator.Done {
-		http.Error(response, "No data found", 404)
-		return
-	}
+	//checking if exists
+	doc, err := docRef.Get(ctx)
 	if err != nil {
-		http.Error(response, err.Error(), http.StatusInternalServerError)
+		utils.HandleError(response, err)
 		return
 	}
 
 	//preparing response body json
 	jsonData, err := json.Marshal(doc.Data())
 	if err != nil {
-		http.Error(response, err.Error(), http.StatusInternalServerError)
+		utils.HandleError(response, err)
 		return
 	}
 
