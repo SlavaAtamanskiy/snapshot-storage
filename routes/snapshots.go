@@ -117,28 +117,27 @@ func snapshotsUpdateOne(response http.ResponseWriter, request *http.Request) {
 	}
 
 	//merging template data with data passed
-	err = json.Unmarshal(body, &snap)
-	if err != nil {
+	if err = json.Unmarshal(body, &snap); err != nil {
+		utils.HandleError(response, err)
+		return
+	}
+	
+	//getting reference
+	docRef := client.Collection(CollectionName).Doc(docID)
+	
+	//checking if exists
+	if _, err = docRef.Get(ctx); err != nil {
 		utils.HandleError(response, err)
 		return
 	}
 
-	//getting reference
-	docRef := client.Collection(CollectionName).Doc(docID)
-	//checking if exists
-	_, err = docRef.Get(ctx)
-	if err != nil {
-		utils.HandleError(response, err)
-		return
-	}
 	//updating
-	_, err = docRef.Update(ctx, []firestore.Update{
+	if _, err = docRef.Update(ctx, []firestore.Update{
 		{Path: "device", Value: snap.Device},
 		{Path: "event", Value: snap.Event},
 		{Path: "mimetype", Value: snap.Mimetype},
 		{Path: "snapshot", Value: snap.Snapshot},
-	})
-	if err != nil {
+	}); err != nil {
 		utils.HandleError(response, err)
 		return
 	}
