@@ -1,14 +1,15 @@
 package routes
 
 import (
+	"encoding/json"
+	"io/ioutil"
+	"net/http"
+
 	"../types"
 	"../utils"
 	"cloud.google.com/go/firestore"
-	"encoding/json"
 	"github.com/jinzhu/copier"
 	"google.golang.org/api/iterator"
-	"io/ioutil"
-	"net/http"
 )
 
 const CollectionName = "Snapshots"
@@ -121,10 +122,10 @@ func snapshotsUpdateOne(response http.ResponseWriter, request *http.Request) {
 		utils.HandleError(response, err)
 		return
 	}
-	
+
 	//getting reference
 	docRef := client.Collection(CollectionName).Doc(docID)
-	
+
 	//checking if exists
 	if _, err = docRef.Get(ctx); err != nil {
 		utils.HandleError(response, err)

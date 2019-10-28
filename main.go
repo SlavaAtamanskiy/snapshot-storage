@@ -1,12 +1,13 @@
 package main
 
 import (
-	"./routes"
 	"context"
-	"firebase.google.com/go"
-	"google.golang.org/api/option"
 	"log"
 	"net/http"
+
+	"./routes"
+	firebase "firebase.google.com/go"
+	"google.golang.org/api/option"
 )
 
 func main() {
